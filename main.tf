@@ -13,13 +13,3 @@ provider "aws" {
   region = "ap-southeast-2"
 }
 
-resource "aws_instance" "app_server" {
-  ami           = "ami-0bcce266670ea4183"
-  instance_type = "t2.micro"
-  subnet_id     = "subnet-df32e686"
-
-  tags = {
-    Name = var.instance_name
-    uuid = "BvZPganedGfYklJIvCIFX4"
-  }
-}
