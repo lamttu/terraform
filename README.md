@@ -7,6 +7,7 @@
 - [ ] [Lambda API Gateway](https://learn.hashicorp.com/tutorials/terraform/lambda-api-gateway?in=terraform/aws)(https://github.com/lamttu/go-api)
 - [x] [DynamoDB scale](https://learn.hashicorp.com/tutorials/terraform/aws-dynamodb-scale?in=terraform/aws)
 - [ ] [The HCL language](https://learn.hashicorp.com/collections/terraform/configuration-language)
+  - [x] [Secret values](https://learn.hashicorp.com/tutorials/terraform/sensitive-variables?in=terraform/configuration-language)
 - [ ] [Modules](https://learn.hashicorp.com/collections/terraform/modules)
 - [ ] [States](https://learn.hashicorp.com/collections/terraform/state)
 - [ ] [General knowledge check](https://learn.hashicorp.com/tutorials/terraform/associate-study?in=terraform/certification)
@@ -30,6 +31,68 @@
 ## Terraform things
 - `.terraform.lock.hcl` contains the hashes for the provider versions. You should never directly modify it.
 If you want to update the provider, run `terraform init -upgrade`
+- `depends_on` can be added to manage dependencies between resources
+```
+  resource "aws_instance" "example_a" {
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = "t2.micro"
+}
+
+resource "aws_instance" "example_b" {
+  ami           = data.aws_ami.amazon_linux.id
+  instance_type = "t2.micro"
+  depends_on    = aws_instance.example_a
+}
+```
+
+### Variables
+- You can parameterise your terraform with variables. This is usually put in `variables.tf` and refer to by `var.variable_name`
+```
+variable "enable_vpn_gateway" {
+  description = "Enable a VPN gateway in your VPC."
+  type        = bool
+  default     = false
+}
+
+```
+- Usually variables are put in `.tfvars` files and then passed in the cli using `terraform apply -var-file="dev.tfvars"`
+- Terraform supports `string`, `number`, `bool`, `list(<type>)`, `set(<type>)`, `map(<type>)`, `object({ <name> = <type>})`, `tuple([ <type> , ...])`
+- You can have [custom condition check](https://www.terraform.io/language/expressions/custom-conditions)
+```
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    condition     = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+
+```
+#### String interpolation
+- `name = "this-is-text-${var.my_variable}-${var.another_variable}"`
+
+### Locals
+- Locals can be used to refer to an expression or value. It's like a name for the result of any Terraform expresion. Example: 
+```
+locals {
+  name_suffix = "${var.resource_tags["project"]}-${var.environment}"
+}
+
+resource "random_pet" "random_name" {
+  name = "example-${local.name_suffix}
+}
+```
+
+### Data block
+
+- Data block is used to query data. One common use case is to query arn of secrets in AWS
+```
+data "aws_secretsmanager_secret" "api_key" {
+  name = "api_key"
+}
+```
 
 ### Remote state
 
