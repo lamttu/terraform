@@ -8,6 +8,9 @@
 - [x] [DynamoDB scale](https://learn.hashicorp.com/tutorials/terraform/aws-dynamodb-scale?in=terraform/aws)
 - [ ] [The HCL language](https://learn.hashicorp.com/collections/terraform/configuration-language)
   - [x] [Secret values](https://learn.hashicorp.com/tutorials/terraform/sensitive-variables?in=terraform/configuration-language)
+  - [x] [Define infra with TF resources](https://learn.hashicorp.com/tutorials/terraform/resource?in=terraform/configuration-language)
+  - [ ] [Play around with a provider](https://learn.hashicorp.com/tutorials/terraform/provider-use?in=terraform/configuration-language)
+  - [x] [Variables](https://learn.hashicorp.com/tutorials/terraform/variables?in=terraform/configuration-language)
 - [ ] [Modules](https://learn.hashicorp.com/collections/terraform/modules)
 - [ ] [States](https://learn.hashicorp.com/collections/terraform/state)
 - [ ] [General knowledge check](https://learn.hashicorp.com/tutorials/terraform/associate-study?in=terraform/certification)
@@ -57,6 +60,7 @@ variable "enable_vpn_gateway" {
 ```
 - Usually variables are put in `.tfvars` files and then passed in the cli using `terraform apply -var-file="dev.tfvars"`
 - Terraform supports `string`, `number`, `bool`, `list(<type>)`, `set(<type>)`, `map(<type>)`, `object({ <name> = <type>})`, `tuple([ <type> , ...])`
+- Variables have to be literal values and can't be expressions or other variables
 - You can have [custom condition check](https://www.terraform.io/language/expressions/custom-conditions)
 ```
 variable "image_id" {
@@ -70,7 +74,22 @@ variable "image_id" {
 }
 
 ```
-#### String interpolation
+- How to use map variables
+```
+variable "resource_map" {
+  type = map(string)
+  description = "Resource map for each environment"
+  default = {
+    uat = "www.uat.com"
+    prod = "www.prod.com"
+  }
+}
+
+# When used:
+endpoint = resource_map["uat"]
+
+```
+### String interpolation
 - `name = "this-is-text-${var.my_variable}-${var.another_variable}"`
 
 ### Locals
