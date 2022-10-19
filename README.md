@@ -11,7 +11,13 @@
   - [x] [Define infra with TF resources](https://learn.hashicorp.com/tutorials/terraform/resource?in=terraform/configuration-language)
   - [ ] [Play around with a provider](https://learn.hashicorp.com/tutorials/terraform/provider-use?in=terraform/configuration-language)
   - [x] [Variables](https://learn.hashicorp.com/tutorials/terraform/variables?in=terraform/configuration-language)
+  - [x] [Secrets](https://learn.hashicorp.com/tutorials/terraform/sensitive-variables?in=terraform/configuration-language)
+  - [x] [Locals](https://learn.hashicorp.com/tutorials/terraform/locals?in=terraform/configuration-language)
+  - [x] [Query data](https://learn.hashicorp.com/tutorials/terraform/data-sources?in=terraform/configuration-language)
+  - [x] [count](https://developer.hashicorp.com/terraform/tutorials/configuration-language/count)
+  - [x] [for_each](https://developer.hashicorp.com/terraform/tutorials/configuration-language/for-each)
 - [ ] [Modules](https://learn.hashicorp.com/collections/terraform/modules)
+  - [ ] https://developer.hashicorp.com/terraform/tutorials/modules/module
 - [ ] [States](https://learn.hashicorp.com/collections/terraform/state)
 - [ ] [General knowledge check](https://learn.hashicorp.com/tutorials/terraform/associate-study?in=terraform/certification)
 
@@ -104,6 +110,27 @@ resource "random_pet" "random_name" {
 }
 ```
 
+### Output
+- Output allows you export data about the resources
+```
+resource "aws_db_instance" "database" {
+  allocated_storage = 5
+  engine            = "mysql"
+  instance_class    = "db.t2.micro"
+  username          = var.db_username
+  password          = var.db_password
+
+  db_subnet_group_name = aws_db_subnet_group.private.name
+
+  skip_final_snapshot = true
+}
+
+output "database-ip" {
+  description = "IP of the databse"
+  value = aws_db_instance.database.public_ip
+}
+```
+
 ### Data block
 
 - Data block is used to query data. One common use case is to query arn of secrets in AWS
@@ -112,12 +139,82 @@ data "aws_secretsmanager_secret" "api_key" {
   name = "api_key"
 }
 ```
+- There are multiple use cases for this. For example, querying the AMI ID for an EC2 instance
+```
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
 
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+```
+
+
+### Manage similar resources
+
+#### 1. Using count
+Example code is in the `count` branch
+
+- Define the number of resources as a variable
+- Use `count` in the resource block to specify how many instances we want
+- `count.index` gives you the index of the resource. This is useful when we want to use the index to assign different values to something.
+```
+resource "aws_instance" "app" {
+  count = var.instances_per_subnet * length(module.vpc.private_subnets)
+  subnet_id              = module.vpc.private_subnets[count.index % length(module.vpc.private_subnets)]
+  ## ...
+}
+```
+- Use `*` to specify all instances of the resource. Example: `aws_resource.app.*.id`: gets all the IDs of all the EC2 instances
+#### 2. Using for each
+- Steps to use `for_each`:
+  - Define a variable (map, list, or set)
+  - Add a `for_each` attribute in the resource you want to create
+
+Example:
+```
+variable "project" {
+  type = map(any)
+
+  default = {
+    project-1 = {
+      this-inner-key = this-inner-value
+    }
+
+    project-2 = {
+
+    }
+  }
+}
+
+module "app_security_group" {
+  source  = "terraform-aws-modules/security-group/aws//modules/web"
+  version = "4.9.0"
+
+  for_each = var.project
+
+  name        = "web-server-sg-${each.key}-${each.value.environment}"
+  description = "Security group for web-servers with HTTP ports open within VPC"
+  # We can get access to different resources created by for_each using each.key
+  vpc_id      = module.vpc[each.key].vpc_id
+
+  ingress_cidr_blocks = module.vpc[each.key].public_subnets_cidr_blocks
+}
+```
+
+- When we use `for_each`, we get access to `each.key` and `each.value`. These are the key value pairs defined in the variable. 
+In the example below, the `key` will be "project-1" and "project-2". To get to `this-inner-value`, we can do `each.value.this-inner-key`
+
+- When you use `for_each` with a list or set, `each.key` is the index of the item in the collection, and `each.value` is the value of the item.
+- We can get access to the specific resource created by `for_each` using `each.key`. For example, you created multiple VPCs using `for_each`. To differentiate between them, we can use: `module.vpc[each.key].vpc_id`
+- You can't use `count` and `for_each` together. The way to get around this is to extract the resource with `count` into its own module. An example is in the `for-each` branch
 ### Remote state
 
 ### Environment parity
 
-### Dynamic block
 
 ### Import existing infra into Terraform
 
