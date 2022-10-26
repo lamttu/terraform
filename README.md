@@ -16,6 +16,7 @@
   - [x] [Query data](https://learn.hashicorp.com/tutorials/terraform/data-sources?in=terraform/configuration-language)
   - [x] [count](https://developer.hashicorp.com/terraform/tutorials/configuration-language/count)
   - [x] [for_each](https://developer.hashicorp.com/terraform/tutorials/configuration-language/for-each)
+  - [x] [dynamic operations with functions](https://developer.hashicorp.com/terraform/tutorials/configuration-language/functions)
 - [ ] [Modules](https://learn.hashicorp.com/collections/terraform/modules)
   - [ ] https://developer.hashicorp.com/terraform/tutorials/modules/module
 - [ ] [States](https://learn.hashicorp.com/collections/terraform/state)
@@ -211,6 +212,28 @@ In the example below, the `key` will be "project-1" and "project-2". To get to `
 - When you use `for_each` with a list or set, `each.key` is the index of the item in the collection, and `each.value` is the value of the item.
 - We can get access to the specific resource created by `for_each` using `each.key`. For example, you created multiple VPCs using `for_each`. To differentiate between them, we can use: `module.vpc[each.key].vpc_id`
 - You can't use `count` and `for_each` together. The way to get around this is to extract the resource with `count` into its own module. An example is in the `for-each` branch
+
+### Functions
+
+The code for this is in the `terraform-functions` branch
+
+#### templatefile()
+- We have a `user_data.tftpl` file. This has 2 placeholders: `department` and `name`
+- We can use the user_data to create your ec2 instance using `user_data = templatefile("user_data.tftpl", { department = var.user_department, name = var.user_name })`
+
+#### lookup()
+- lookup(map, key, default)
+
+#### file()
+- file(pathToFile)
+- You can use this to read in the content of a file. It doesn't replace dynamic values in the file itself. Should only be used with files that don't need modificaiton
+```
+resource "aws_key_pair" "ssh_key" {
+  key_name = "ssh_key"
+  public_key = file("ssh_key.pub")
+}
+```
+
 ### Remote state
 
 ### Environment parity
